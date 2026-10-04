@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jeopardy">
+<meta name="robots" content="noindex">
+<title>Jeopardy — Cabin edition</title>
+<style>
+  :root{
+    --blue:#060CE9; --navy:#0a1060; --bg:#020a3a; --gold:#FFC319; --white:#fff;
+    --serif: "Korinna","ITC Korinna","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
+    --display: "Swiss 911","Impact","Haettenschweiler","Arial Narrow Bold","Arial Black",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--white);font-family:var(--serif);overflow:hidden}
+  body{background:radial-gradient(ellipse at 50% 30%, #0b1a8f 0%, #040f5e 45%, #01072b 100%)}
+  button{font-family:inherit;cursor:pointer}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column}
+  .screen.active{display:flex}
+
+  /* ---------- Title ---------- */
+  #title{align-items:center;justify-content:center;text-align:center;gap:2.5vh}
+  #title h1{font-family:var(--display);font-weight:900;letter-spacing:.06em;text-transform:uppercase;margin:0;
+    font-size:clamp(48px,13vw,220px);line-height:1;color:var(--gold);text-shadow:0 .04em 0 #000,0 0 .3em rgba(255,195,25,.35)}
+  #title h2{font-family:var(--serif);font-style:italic;font-weight:700;margin:0;letter-spacing:.2em;text-transform:uppercase;
+    font-size:clamp(20px,4vw,64px);color:#fff}
+  .btn-big{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:clamp(24px,3.6vw,56px);
+    padding:.35em 1.4em;border-radius:.2em;border:.12em solid var(--gold);background:var(--blue);color:var(--gold);
+    box-shadow:0 .12em 0 #000;transition:transform .08s, filter .15s}
+  .btn-big:hover,.btn-big:focus-visible{filter:brightness(1.3);transform:translateY(-2px);outline:none}
+  #title .hint{font-size:clamp(14px,1.6vw,24px);opacity:.7}
+
+  /* ---------- Board ---------- */
+  #board-screen{padding:1.2vh 1.2vw;gap:1.2vh}
+  .topbar{display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}
+  .topbar .logo{font-family:var(--display);color:var(--gold);letter-spacing:.1em;text-transform:uppercase;font-size:clamp(18px,2.6vw,44px)}
+  .topbar .actions{display:flex;gap:.6vw}
+  .btn-small{font-family:var(--serif);font-weight:700;font-size:clamp(12px,1.2vw,20px);padding:.4em .9em;border-radius:.4em;
+    border:2px solid rgba(255,255,255,.4);background:rgba(0,0,0,.35);color:#fff}
+  .btn-small:hover,.btn-small:focus-visible{border-color:var(--gold);color:var(--gold);outline:none}
+  .btn-small.danger:hover{border-color:#ff6b6b;color:#ff6b6b}
+  #board{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:minmax(0,1.1fr) repeat(5,minmax(0,1fr));gap:.7vmin;
+    background:#000;padding:.7vmin;border-radius:.6vmin}
+  .cat{background:var(--blue);display:flex;align-items:center;justify-content:center;text-align:center;padding:.5em;
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:clamp(12px,1.75vw,34px);line-height:1.05;
+    color:#fff;text-shadow:.06em .06em 0 #000;border:.25vmin solid #0b14ff;overflow:hidden;word-break:normal;overflow-wrap:normal}
+  .tile{background:linear-gradient(180deg,#0b17ff 0%,#0710b8 100%);border:.25vmin solid #2a35ff;color:var(--gold);
+    font-family:var(--display);font-size:clamp(24px,4.6vw,86px);text-shadow:.05em .05em 0 #000;display:flex;align-items:center;justify-content:center;
+    transition:transform .08s, filter .15s;padding:0}
+  .tile:hover,.tile:focus-visible{filter:brightness(1.35);transform:scale(1.03);outline:none;position:relative;z-index:1}
+  .tile.played{background:#050a40;border-color:#0a1060;color:transparent;text-shadow:none;cursor:default;filter:none;transform:none;opacity:.55}
+  .tile.played:hover{filter:none;transform:none}
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard{flex:0 0 auto;display:flex;gap:.8vw;align-items:stretch;justify-content:center}
+  .team{flex:1 1 0;min-width:0;max-width:20vw;background:rgba(0,0,0,.45);border:2px solid #2a35ff;border-radius:.6vmin;padding:.5vh .6vw;
+    display:flex;flex-direction:column;align-items:stretch;gap:.3vh}
+  .team input{width:100%;background:transparent;border:0;border-bottom:1px dashed rgba(255,255,255,.3);color:#fff;
+    font-family:var(--serif);font-weight:700;text-align:center;font-size:clamp(14px,1.7vw,30px);padding:.1em;text-transform:uppercase;letter-spacing:.04em}
+  .team input:focus{outline:none;border-bottom-color:var(--gold)}
+  .team .score{font-family:var(--display);color:var(--gold);text-align:center;font-size:clamp(24px,3.4vw,64px);line-height:1.1}
+  .team .score.neg{color:#ff8a8a}
+  .team input.score-input{font-family:var(--display);color:var(--gold);font-size:clamp(24px,3.4vw,64px);border-bottom:0;text-transform:none;letter-spacing:0}
+  .team input.score-input.neg{color:#ff8a8a}
+  .team input.score-input::-webkit-inner-spin-button{display:none}
+  .team input.score-input{-moz-appearance:textfield;appearance:textfield}
+  .team .pm{display:flex;gap:.4vw}
+  .team .pm button{flex:1;font-family:var(--display);font-size:clamp(16px,2vw,36px);padding:.15em 0;border-radius:.3em;border:2px solid;color:#fff}
+  .team .pm .minus{background:#7a1020;border-color:#ff6b6b}
+  .team .pm .plus{background:#0d6b2a;border-color:#58e07f}
+  .team .pm button:hover,.team .pm button:focus-visible{filter:brightness(1.3);outline:none}
+  .team-ctl{display:flex;flex-direction:column;gap:.4vh;justify-content:center}
+
+  /* ---------- Clue ---------- */
+  #clue-screen{padding:2vh 3vw 1.5vh;gap:2vh;background:radial-gradient(ellipse at 50% 40%, #0a18d0 0%, #060CE9 60%, #040a9e 100%)}
+  #clue-screen .meta{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;flex:0 0 auto}
+  #clue-cat{color:#fff;font-size:clamp(20px,3vw,52px)}
+  #clue-val{color:var(--gold);font-size:clamp(28px,4.5vw,80px);text-shadow:.05em .05em 0 #000}
+  .clue-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4vh;padding:0 2vw}
+  #clue-text{text-transform:uppercase;font-weight:700;line-height:1.25;text-shadow:.04em .04em 0 #000;max-width:90vw;
+    font-size:clamp(28px,5.2vw,100px);margin:0;overflow-wrap:anywhere}
+  #clue-text.long{font-size:clamp(24px,4.2vw,80px)}
+  #answer{font-family:var(--serif);font-weight:700;color:var(--gold);text-shadow:.04em .04em 0 #000;font-size:clamp(26px,4.4vw,84px);
+    min-height:1.3em;visibility:hidden;text-transform:uppercase;overflow-wrap:anywhere}
+  #answer.shown{visibility:visible}
+  #answer.empty{color:rgba(255,255,255,.65);font-style:italic}
+  .clue-actions{display:flex;gap:2vw;justify-content:center;flex:0 0 auto}
+  .clue-actions .btn-big{font-size:clamp(18px,2.4vw,40px)}
+  .clue-actions .btn-big.secondary{border-color:#fff;color:#fff;background:rgba(0,0,0,.35)}
+  #clue-screen .scoreboard{padding-top:.5vh}
+  #clue-screen .team{background:rgba(0,0,10,.55)}
+  .kbd{text-align:center;font-size:clamp(11px,1.1vw,18px);opacity:.65}
+</style>
+</head>
+<body>
+
+<!-- ======================= EDIT YOUR GAME HERE =======================
+     Each clue: { value, clue, answer }.  Leave answer as "" if you don't have one yet;
+     the Reveal button will then show "No answer added".
+     Clue text is shown in UPPERCASE automatically. -->
+<script>
+const GAME = {
+  title: "Jeopardy — Cabin edition",
+  maxTeams: 6,
+  categories: [
+    { name: "80s Lyrics", clues: [
+      { value: 200,  clue: "THIS PHRASE COMPLETES THE LYRIC: SOME’LL WIN, SOME WILL LOSE, _____________________.", answer: "Some were born to sing the blues" },
+      { value: 400,  clue: "THIS INDIVIDUAL IS NOT MICHAEL’S LOVER.", answer: "Billie Jean" },
+      { value: 600,  clue: "THE SECOND LINE OF THIS SINGER’S MOST FAMOUS SONG IS “CAUGHT UP IN CIRCLES, CONFUSION IS NOTHING NEW.”", answer: "Cyndi Lauper" },
+      { value: 800,  clue: "DOLLY USES THIS PHONESTEME IN THE FIRST LINE OF ONE OF HER GREATEST 80S HITS IN THAT EXACT ORDER", answer: "Stumble and tumble" },
+      { value: 1000, clue: "THE LENGTH OF SILENCE IN SECONDS ROUNDED TO THE NEAREST 10TH BEFORE WHITNEY DROPS “AND IIIIIIIIIIIIIIII WILL ALWAYS LOVE YOU”", answer: "3.2 seconds" }
+    ]},
+    { name: "Outer Space", clues: [
+      { value: 200,  clue: "THIS PLANET IS THE FARTHEST FROM THE SUN IN OUR SOLAR SYSTEM.", answer: "Neptune" },
+      { value: 400,  clue: "THIS APOLLO MISSION WAS THE FIRST TO ORBIT THE MOON", answer: "Apollo 8" },
+      { value: 600,  clue: "THE APPROXIMATE AMOUNT OF TIME THAT IT TAKES FOR THE SUN’S LIGHT TO REACH EARTH", answer: "About 8 minutes 20 seconds" },
+      { value: 800,  clue: "ON AVERAGE, THIS PLANET IS CLOSEST TO EARTH", answer: "Mercury" },
+      { value: 1000, clue: "A TEASPOON OF THIS STELLAR REMNANT WOULD WEIGH OVER 1 BILLION TONS ON EARTH", answer: "Neutron star" }
+    ]},
+    { name: "Hunterisms", clues: [
+      { value: 200,  clue: "THIS IS ONE OF YETI’S MANY NICKNAMES", answer: "Yetilda, Yediot, Yetitty, Yesticle" },
+      { value: 400,  clue: "HUNTER’S PRONUNCIATION FOR KENNA", answer: "Kenná" },
+      { value: 600,  clue: "HUNTER IS FLUENT IN QUOTING THIS SHOW", answer: "The Office" },
+      { value: 800,  clue: "HUNTER’S WAY OF SAYING “DESSERT”", answer: "Sweet Treat" },
+      { value: 1000, clue: "HUNTER SLAPS THIS ENDING ONTO ANY NOUN TO MAKE IT A VERB", answer: "-ulate" }
+    ]},
+    { name: "Technically Edible", clues: [
+      { value: 200,  clue: "CURDLED SOY MILK, THIS IS A SAD, VEGAN EXCUSE FOR A PROTEIN", answer: "Tofu" },
+      { value: 400,  clue: "THIS GETS ITS BOUNCE FROM COLLAGEN BOILED OUT OF ANIMAL BONES AND SKIN", answer: "Gelatin / Jell-O" },
+      { value: 600,  clue: "THIS MUSCULAR COW ORGAN IS BOILED, PEELED AND SLICED FOR TACOS AND OTHER DISHES IN CENTRAL AMERICA", answer: "Tongue / lengua" },
+      { value: 800,  clue: "THIS SCHOOL SUPPLY IS ALSO AN EDIBLE ANTACID", answer: "Chalk" },
+      { value: 1000, clue: "YOUNG SHOOTS OF THIS GRASS ARE EDIBLE ONLY AFTER BOILING OF THE NATURAL CYANIDE COMPOUNDS", answer: "Bamboo" }
+    ]},
+    { name: "The Villain Was Right", clues: [
+      { value: 200,  clue: "THIS 8 LEGGED VILLAIN MADE A CONTRACT WITH THE PROTAGONIST WITHOUT FORCING HIS/HER SIGNATURE", answer: "Ursula" },
+      { value: 400,  clue: "THIS FORWARD THINKING REJECT’S PITCH WAS THAT EXCEPTIONAL PEOPLE SHOULDN’T BE THE ONLY ONES WITH EXCEPTIONAL TOOLS", answer: "Syndrome" },
+      { value: 600,  clue: "THIS EDITOR, THE BEST IN HIS/HER INDUSTRY, DOESN’T CONSIDER CLOTHING TO BE ‘JUST BLUE’", answer: "Miranda Priestly" },
+      { value: 800,  clue: "HONORING TRADITION, HE/SHE LANDS ON TOP", answer: "President Snow" },
+      { value: 1000, clue: "THIS CRUEL, WORLD-RENOWNED FOOD CRITIC WAS THE MOTIVATING FACTOR", answer: "Anton Ego" }
+    ]},
+    { name: "Girl Math", clues: [
+      { value: 200,  clue: "MONEY LEAVING THIS PAYPAL-OWNED ACCOUNT IS NOT SPENDING", answer: "Venmo" },
+      { value: 400,  clue: "THIS IS WHEN YOU CAN BUY WHATEVER YOU WANT BECAUSE THE GOVERNMENT PAYS FOR IT", answer: "Tax write-off" },
+      { value: 600,  clue: "THIS ECONOMIC IDEA MEANS THAT A DOLLAR TOMORROW IS WORTH LESS THAN A DOLLAR TODAY, SO BUY IT NOW!", answer: "Time value of money" },
+      { value: 800,  clue: "THIS DATE FEELS LIKE THE BIGGEST “FREE MONEY” DATE OF THE YEAR FOR W2 EMPLOYEES ON WITHHOLDING SCHEDULES", answer: "Tax Day / April 15" },
+      { value: 1000, clue: "THIS CREDIT CARD OFFERS A $75/QUARTER CREDIT TO LULULEMON. IF YOU AREN’T BUYING LEGGINGS ONCE A QUARTER, YOU ARE LOSING MONEY.", answer: "Amex Platinum" }
+    ]}
+  ]
+};
+</script>
+
+<!-- Title -->
+<div id="title" class="screen active">
+  <h1>Jeopardy</h1>
+  <h2>— Cabin edition —</h2>
+  <button class="btn-big" id="start-btn">Start game</button>
+  <div class="hint">Click a tile to open a clue &nbsp;•&nbsp; Esc = back</div>
+</div>
+
+<!-- Board -->
+<div id="board-screen" class="screen">
+  <div class="topbar">
+    <div class="logo">Jeopardy — Cabin edition</div>
+    <div class="actions">
+      <button class="btn-small" id="title-btn">Title screen</button>
+      <button class="btn-small danger" id="reset-btn">Reset game</button>
+    </div>
+  </div>
+  <div id="board"></div>
+  <div class="scoreboard" id="board-scores"></div>
+</div>
+
+<!-- Clue -->
+<div id="clue-screen" class="screen">
+  <div class="meta"><span id="clue-cat"></span><span id="clue-val"></span></div>
+  <div class="clue-body">
+    <p id="clue-text"></p>
+    <div id="answer"></div>
+  </div>
+  <div class="clue-actions">
+    <button class="btn-big" id="reveal-btn">Reveal answer</button>
+    <button class="btn-big secondary" id="back-btn">Back to board</button>
+  </div>
+  <div class="scoreboard" id="clue-scores"></div>
+  <div class="kbd">Space / Enter = reveal &nbsp;•&nbsp; Esc = back to board (tile is marked played)</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "jeopardy-cabin-v1";
+  var DEFAULT_NAMES = ["Team 1","Team 2","Team 3","Team 4","Team 5","Team 6"];
+  var MAXT = GAME.maxTeams || 6;
+
+  function defaultState(){
+    return { played:{}, teams: DEFAULT_NAMES.slice(0,2).map(function(n){return {name:n, score:0};}) };
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return defaultState();
+      var s = JSON.parse(raw);
+      if(!s || typeof s.played !== "object" || !Array.isArray(s.teams) || !s.teams.length) return defaultState();
+      s.teams = s.teams.slice(0,MAXT).map(function(t,i){
+        return { name: (t && typeof t.name==="string") ? t.name : DEFAULT_NAMES[i], score: Number(t && t.score)||0 };
+      });
+      return s;
+    }catch(e){ return defaultState(); }
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  var state = load();
+  var current = null;   // {c, r}
+  var $ = function(id){ return document.getElementById(id); };
+
+  function show(id){
+    ["title","board-screen","clue-screen"].forEach(function(s){ $(s).classList.toggle("active", s===id); });
+  }
+  function fmt(n){ return (n<0?"-":"") + "$" + Math.abs(n).toLocaleString("en-US"); }
+  function key(c,r){ return c+"-"+r; }
+
+  /* ---- Board ---- */
+  function renderBoard(){
+    var b = $("board"); b.innerHTML = "";
+    GAME.categories.forEach(function(cat){
+      var d = document.createElement("div"); d.className = "cat"; d.textContent = cat.name; b.appendChild(d);
+    });
+    for(let r=0;r<5;r++){
+      GAME.categories.forEach(function(cat,c){
+        var clue = cat.clues[r];
+        var t = document.createElement("button"); t.className = "tile"; t.type = "button";
+        var played = !!state.played[key(c,r)];
+        t.setAttribute("aria-label", cat.name+" for $"+clue.value+(played?" (played)":""));
+        if(played){ t.classList.add("played"); t.disabled = true; t.textContent = "$"+clue.value; }
+        else { t.textContent = "$"+clue.value; t.addEventListener("click", function(){ openClue(c,r); }); }
+        b.appendChild(t);
+      });
+    }
+  }
+
+  /* ---- Scoreboards ---- */
+  function renderScores(){
+    renderBoardScores();
+    if(current) renderClueScores();
+  }
+  function teamNameInput(i){
+    var inp = document.createElement("input");
+    inp.type = "text"; inp.value = state.teams[i].name; inp.maxLength = 20; inp.setAttribute("aria-label","Team "+(i+1)+" name");
+    inp.addEventListener("input", function(){ state.teams[i].name = inp.value; save(); syncNames(i, inp); });
+    return inp;
+  }
+  function syncNames(i, src){
+    document.querySelectorAll('.team[data-i="'+i+'"] input[type=text]').forEach(function(el){ if(el!==src) el.value = state.teams[i].name; });
+  }
+  function renderBoardScores(){
+    var box = $("board-scores"); box.innerHTML = "";
+    state.teams.forEach(function(t,i){
+      var d = document.createElement("div"); d.className = "team"; d.dataset.i = i;
+      d.appendChild(teamNameInput(i));
+      var sc = document.createElement("input"); sc.type = "text"; sc.inputMode = "numeric"; sc.className = "score-input" + (t.score<0?" neg":"");
+      sc.value = fmt(t.score); sc.setAttribute("aria-label", t.name+" score (editable)");
+      sc.addEventListener("focus", function(){ sc.value = String(state.teams[i].score); sc.select(); });
+      function commit(){
+        var v = parseInt(String(sc.value).replace(/[^0-9\-]/g,""),10);
+        if(!isNaN(v)) state.teams[i].score = v;
+        save(); renderScores();
+      }
+      sc.addEventListener("blur", commit);
+      sc.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); sc.blur(); } });
+      d.appendChild(sc);
+      box.appendChild(d);
+    });
+    var ctl = document.createElement("div"); ctl.className = "team-ctl";
+    if(state.teams.length < MAXT){
+      var add = document.createElement("button"); add.className="btn-small"; add.type="button"; add.textContent="+ Team";
+      add.addEventListener("click", function(){ state.teams.push({name:DEFAULT_NAMES[state.teams.length]||("Team "+(state.teams.length+1)), score:0}); save(); renderScores(); });
+      ctl.appendChild(add);
+    }
+    if(state.teams.length > 1){
+      var rm = document.createElement("button"); rm.className="btn-small"; rm.type="button"; rm.textContent="− Team";
+      rm.addEventListener("click", function(){
+        var last = state.teams[state.teams.length-1];
+        if(last.score!==0 && !confirm("Remove "+last.name+" and its score of "+fmt(last.score)+"?")) return;
+        state.teams.pop(); save(); renderScores();
+      });
+      ctl.appendChild(rm);
+    }
+    box.appendChild(ctl);
+  }
+  function renderClueScores(){
+    var box = $("clue-scores"); box.innerHTML = "";
+    var val = GAME.categories[current.c].clues[current.r].value;
+    state.teams.forEach(function(t,i){
+      var d = document.createElement("div"); d.className = "team"; d.dataset.i = i;
+      d.appendChild(teamNameInput(i));
+      var sc = document.createElement("div"); sc.className = "score" + (t.score<0?" neg":""); sc.textContent = fmt(t.score);
+      d.appendChild(sc);
+      var pm = document.createElement("div"); pm.className = "pm";
+      var m = document.createElement("button"); m.type="button"; m.className="minus"; m.textContent = "− "+val; m.setAttribute("aria-label","Subtract "+val+" from "+t.name);
+      var p = document.createElement("button"); p.type="button"; p.className="plus"; p.textContent = "+ "+val; p.setAttribute("aria-label","Add "+val+" to "+t.name);
+      m.addEventListener("click", function(){ state.teams[i].score -= val; save(); renderScores(); });
+      p.addEventListener("click", function(){ state.teams[i].score += val; save(); renderScores(); });
+      pm.appendChild(m); pm.appendChild(p); d.appendChild(pm);
+      box.appendChild(d);
+    });
+  }
+
+  /* ---- Clue view ---- */
+  function openClue(c,r){
+    current = {c:c, r:r, revealed:false};
+    var cat = GAME.categories[c], clue = cat.clues[r];
+    $("clue-cat").textContent = cat.name;
+    $("clue-val").textContent = "$"+clue.value;
+    var ct = $("clue-text"); ct.textContent = clue.clue; ct.classList.toggle("long", clue.clue.length > 90);
+    var a = $("answer"); a.className = ""; a.textContent = "\u00a0";
+    $("reveal-btn").disabled = false;
+    renderClueScores();
+    show("clue-screen");
+    $("reveal-btn").focus();
+  }
+  function reveal(){
+    if(!current || current.revealed) return;
+    current.revealed = true;
+    var clue = GAME.categories[current.c].clues[current.r];
+    var a = $("answer"), has = clue.answer && String(clue.answer).trim() !== "";
+    a.textContent = has ? clue.answer : "No answer added";
+    a.className = "shown" + (has ? "" : " empty");
+    $("reveal-btn").disabled = true;
+  }
+  function backToBoard(){
+    if(!current) return;
+    state.played[key(current.c,current.r)] = true;
+    current = null;
+    save(); renderBoard(); renderBoardScores();
+    show("board-screen");
+  }
+
+  /* ---- Wiring ---- */
+  $("start-btn").addEventListener("click", function(){ renderBoard(); renderBoardScores(); show("board-screen"); });
+  $("title-btn").addEventListener("click", function(){ show("title"); $("start-btn").focus(); });
+  $("reveal-btn").addEventListener("click", reveal);
+  $("back-btn").addEventListener("click", backToBoard);
+  $("reset-btn").addEventListener("click", function(){
+    if(!confirm("Reset the game? This un-plays every tile and sets all scores to $0.")) return;
+    state = defaultState(); save(); current = null; renderBoard(); renderBoardScores(); show("board-screen");
+  });
+
+  document.addEventListener("keydown", function(e){
+    var tag = (e.target && e.target.tagName) || "";
+    var typing = tag==="INPUT" || tag==="TEXTAREA";
+    if(e.key === "Escape"){
+      if(typing){ e.target.blur(); return; }
+      if($("clue-screen").classList.contains("active")) backToBoard();
+      else if($("board-screen").classList.contains("active")) { show("title"); }
+      return;
+    }
+    if($("clue-screen").classList.contains("active") && !typing && (e.key===" " || e.key==="Enter")){
+      if(e.target && e.target.tagName==="BUTTON") return; // let focused button handle itself
+      e.preventDefault(); reveal();
+    }
+  });
+
+  renderBoard(); renderBoardScores();
+})();
+</script>
+</body>
+</html>
