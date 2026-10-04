@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>How Grok and I built a Jeopardy game</title>
+<style>
+  :root{
+    --bg1:#0b1020; --bg2:#1a1240; --blue:#0a84ff; --blue2:#3ba0ff; --grey:#2c2f3a; --grey2:#383c4a;
+    --text:#f5f7ff; --muted:#8c93ad;
+    --fs: clamp(17px, min(2.35vw, 4.1vh), 46px);   /* base bubble font, scales with viewport */
+    --small: clamp(11px, min(1.05vw, 1.9vh), 20px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;width:100%;overflow:hidden;background:#05070f;color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    -webkit-user-select:none;user-select:none;touch-action:manipulation;cursor:pointer}
+  #app{position:fixed;inset:0;height:100vh;height:100dvh;display:flex;flex-direction:column;
+    background:radial-gradient(120% 90% at 15% 0%,var(--bg2) 0%,var(--bg1) 55%,#060812 100%);overflow:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #app::before,#app::after{content:"";position:absolute;border-radius:50%;filter:blur(90px);opacity:.35;pointer-events:none}
+  #app::before{width:46vw;height:46vw;left:-12vw;top:-14vw;background:#3b2bd9}
+  #app::after{width:40vw;height:40vw;right:-10vw;bottom:-16vw;background:#0a84ff;opacity:.25}
+
+  /* progress */
+  #progress{position:absolute;left:0;top:0;right:0;height:max(3px,.5vh);background:rgba(255,255,255,.07);z-index:30}
+  #progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7b61ff,#0a84ff,#5ee0ff);
+    border-radius:0 3px 3px 0;transition:width .5s cubic-bezier(.3,.8,.3,1);box-shadow:0 0 12px rgba(10,132,255,.8)}
+
+  /* header */
+  #header{position:relative;z-index:10;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    padding:calc(var(--fs)*.55) 4vw calc(var(--fs)*.5);background:rgba(18,20,34,.72);
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.08)}
+  #header .contact{display:flex;flex-direction:column;align-items:center;gap:.15em}
+  #header .av{width:calc(var(--fs)*1.5);height:calc(var(--fs)*1.5);border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(145deg,#8b7bff,#3b2bd9);font-weight:700;font-size:calc(var(--fs)*.8);box-shadow:0 4px 16px rgba(80,60,255,.5)}
+  #header .name{font-size:calc(var(--fs)*.78);font-weight:600;letter-spacing:.01em}
+  #header .name::after{content:" ›";color:var(--muted)}
+  #header .title{position:absolute;left:3vw;top:50%;transform:translateY(-50%);font-size:var(--small);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+  #header .counter{position:absolute;right:3vw;top:50%;transform:translateY(-50%);font-size:var(--small);color:var(--muted);font-variant-numeric:tabular-nums}
+
+  /* chat */
+  #chat{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 7%);mask-image:linear-gradient(to bottom,transparent 0,#000 7%)}
+  #scroller{position:absolute;inset:0;overflow-y:scroll;overflow-x:hidden;scrollbar-width:none;display:flex;flex-direction:column}
+  #scroller::-webkit-scrollbar{display:none}
+  #list{width:min(94vw,1500px);margin:0 auto;margin-top:auto;padding:calc(var(--fs)*.9) 0 calc(var(--fs)*1.2);display:flex;flex-direction:column}
+
+  .row{display:flex;flex-direction:column;margin-top:calc(var(--fs)*.22);max-width:100%}
+  .row.first{margin-top:calc(var(--fs)*.8)}
+  .row.me{align-items:flex-end}
+  .row.bot{align-items:flex-start}
+  .row.enter{animation:rowIn .35s cubic-bezier(.2,.9,.3,1) both}
+  @keyframes rowIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .who{font-size:var(--small);color:var(--muted);margin:0 calc(var(--fs)*.4) calc(var(--fs)*.18);letter-spacing:.02em}
+  .row.bot .who{margin-left:calc(var(--fs)*2.0 + var(--fs)*.4)}
+  .line{display:flex;align-items:flex-end;gap:calc(var(--fs)*.4);max-width:78%}
+  .row.me .line{flex-direction:row}
+  .avatar{flex:0 0 auto;width:calc(var(--fs)*1.6);height:calc(var(--fs)*1.6);border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(145deg,#8b7bff,#3b2bd9);font-weight:700;font-size:calc(var(--fs)*.8);margin-bottom:calc(var(--fs)*.05);
+    box-shadow:0 3px 10px rgba(0,0,0,.35)}
+  .avatar.ghost{visibility:hidden}
+
+  .bubble{position:relative;font-size:var(--fs);line-height:1.28;padding:.55em .9em .58em;border-radius:1.15em;
+    word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap;box-shadow:0 6px 20px rgba(0,0,0,.28);transform-origin:var(--origin,bottom left)}
+  .row.me .bubble{background:linear-gradient(180deg,var(--blue2),var(--blue));color:#fff;border-bottom-right-radius:.3em;--origin:bottom right}
+  .row.bot .bubble{background:linear-gradient(180deg,var(--grey2),var(--grey));color:#f0f2fa;border-bottom-left-radius:.3em;--origin:bottom left}
+  .bubble.pop{animation:pop .42s cubic-bezier(.2,1.25,.35,1) both}
+  @keyframes pop{0%{opacity:.4;transform:scale(.7) translateY(8px)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:none}}
+
+  /* typing */
+  .bubble.typing{display:flex;gap:.3em;align-items:center;padding:.7em .95em;min-height:2.0em}
+  .bubble.typing span{width:.5em;height:.5em;border-radius:50%;background:#aab0c6;display:block;animation:dot 1.1s infinite ease-in-out}
+  .row.me .bubble.typing span{background:#d7ebff}
+  .bubble.typing span:nth-child(2){animation-delay:.16s}
+  .bubble.typing span:nth-child(3){animation-delay:.32s}
+  @keyframes dot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-.3em);opacity:1}}
+
+  /* overlays: title & end */
+  .card{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:6vh 7vw;background:radial-gradient(100% 80% at 50% 30%,rgba(40,28,110,.55),rgba(7,9,20,.94));
+    transition:opacity .6s ease,transform .6s cubic-bezier(.3,.8,.3,1),visibility 0s linear .6s;opacity:0;visibility:hidden;transform:scale(1.04);pointer-events:none}
+  .card.show{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+  .card .icon{width:clamp(70px,11vh,150px);height:clamp(70px,11vh,150px);border-radius:50%;display:grid;place-items:center;font-weight:800;
+    font-size:clamp(34px,5.5vh,76px);background:linear-gradient(145deg,#8b7bff,#3b2bd9);box-shadow:0 14px 50px rgba(80,60,255,.6);margin-bottom:4vh}
+  .card h1{font-size:clamp(34px,min(6.6vw,11vh),120px);line-height:1.08;font-weight:800;letter-spacing:-.02em;max-width:16em;
+    background:linear-gradient(180deg,#fff,#b9c2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .card .sub{margin-top:2.6vh;font-size:clamp(18px,min(2.6vw,4.6vh),52px);color:#a9b1d6;font-weight:500}
+  .card .hint{margin-top:8vh;font-size:clamp(14px,min(1.6vw,2.8vh),30px);color:#cfd6ff;padding:.6em 1.4em;border-radius:99px;
+    border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);animation:pulse 2s infinite ease-in-out}
+  @keyframes pulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  .card .tiny{margin-top:3vh;font-size:var(--small);color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+  .card.show h1,.card.show .sub,.card.show .icon,.card.show .tiny{animation:rise .8s cubic-bezier(.2,.9,.3,1) both}
+  .card.show .sub{animation-delay:.12s}.card.show .tiny{animation-delay:.25s}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  #end h1{font-size:clamp(44px,min(10vw,17vh),200px)}
+
+  #kbd{position:absolute;right:1.4vw;bottom:1.2vh;z-index:40;font-size:var(--small);color:rgba(255,255,255,.28);pointer-events:none}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="progress"><i></i></div>
+  <div id="header">
+    <div class="title">Hunter ↔ Grok</div>
+    <div class="contact"><div class="av">G</div><div class="name">Grok</div></div>
+    <div class="counter"></div>
+  </div>
+  <div id="chat"><div id="scroller"><div id="list"></div></div></div>
+
+  <div class="card show" id="title">
+    <div class="icon">G</div>
+    <h1>How Grok and I built a Jeopardy game</h1>
+    <div class="sub">a text conversation</div>
+    <div class="hint">Click, tap or press Space to start</div>
+  </div>
+  <div class="card" id="end">
+    <h1>The End</h1>
+    <div class="tiny">Jeopardy Cabin edition</div>
+  </div>
+  <div id="kbd">← →  ·  F fullscreen</div>
+</div>
+
+<script>
+/* ======================= CONVERSATION SCRIPT — edit freely ======================= */
+const TITLE    = "How Grok and I built a Jeopardy game";
+const SUBTITLE = "a text conversation";
+const ME       = "Hunter";   // right side, blue
+const BOT      = "Grok";     // left side, grey, avatar "G"
+const TYPING_MS = 900;
+
+const SCRIPT = [
+  ["Hunter", "Hey, can you proofread my slides for a Jeopardy game?"],
+  ["Grok",   "Sure, can I sign into your Google?"],
+  ["Hunter", "Ya, go ahead"],
+  ["Grok",   "Cool, found the Cabin deck. Haha, these questions are funny. I found four typos, including \"nickmames\", which I assume is not Yeti's real nickname."],
+  ["Hunter", "lol. Phonesteme is a real word, leave it. Fix the rest."],
+  ["Grok",   "Done. I also learned a new word, so thanks."],
+  ["Hunter", "Can you make the links change color after I click them? I have no idea how."],
+  ["Grok",   "Slides can't do that. I could build a chain of boards, but it forces one play order and I can't edit links anyway. So I have a better idea. Can I write some code and host it?"],
+  ["Hunter", "Go for it"],
+  ["Grok",   "Done. It's a clickable board where squares grey out once they're played, and it keeps score."],
+  ["Hunter", "Amazing! Make it 2 teams and guess the answers."],
+  ["Grok",   "Guessed 'em all, except the inside jokes. Who is Yetilda?"],
+  ["Hunter", "Yetilda, Yediot, Yetitty, Yesticle."],
+  ["Grok",   "I'm not even going to ask. All 30 answers are in."],
+  ["Hunter", "How do I put this full screen on my iPad?"],
+  ["Grok",   "Put it online. I need a GitHub account, though."],
+  ["Hunter", "I don't have one, but I'll need it for more projects. It's free, right?"],
+  ["Grok",   "Totally free. Sign up, send me your username, and approve a code."],
+  ["Hunter", "Approved."],
+  ["Grok",   "Hosted! Open the link in Safari, tap Share, then Add to Home Screen, and it launches full screen like a real app."],
+  ["Hunter", "My friends dropped a phone in a porta potty, so we have more time."],
+  ["Grok",   "Ha, even a porta potty couldn't take down the Jeopardy game. Let's go."],
+];
+/* ================================================================================== */
+
+(function(){
+  const N = SCRIPT.length;
+  const $ = s => document.querySelector(s);
+  const list = $('#list'), scroller = $('#scroller');
+  const titleCard = $('#title'), endCard = $('#end'), bar = $('#progress i'), counter = $('.counter');
+  $('#title h1').textContent = TITLE; $('#title .sub').textContent = SUBTITLE;
+
+  let pos = 0;            // number of messages shown; 0 = title card, N+1 = end card
+  let typingTimer = null; // pending typing → message
+  let typingRow = null;
+
+  const isMe = i => SCRIPT[i][0] === ME;
+  const firstOfRun = i => i === 0 || SCRIPT[i-1][0] !== SCRIPT[i][0];
+  const lastOfRun  = i => i === N-1 || SCRIPT[i+1][0] !== SCRIPT[i][0];
+
+  function makeRow(i){
+    const [who] = SCRIPT[i], me = isMe(i);
+    const row = document.createElement('div');
+    row.className = 'row ' + (me ? 'me' : 'bot') + (firstOfRun(i) ? ' first' : '');
+    row.dataset.i = i;
+    if (firstOfRun(i)) { const w = document.createElement('div'); w.className = 'who'; w.textContent = who; row.appendChild(w); }
+    const line = document.createElement('div'); line.className = 'line';
+    if (!me) { const a = document.createElement('div'); a.className = 'avatar' + (lastOfRun(i) ? '' : ' ghost'); a.textContent = 'G'; line.appendChild(a); }
+    const b = document.createElement('div'); b.className = 'bubble';
+    line.appendChild(b); row.appendChild(line);
+    return row;
+  }
+  const fillText = (row,i) => { const b = row.querySelector('.bubble'); b.className = 'bubble'; b.textContent = SCRIPT[i][1]; return b; };
+  function fillTyping(row){ const b = row.querySelector('.bubble'); b.className = 'bubble typing'; b.innerHTML = '<span></span><span></span><span></span>'; }
+
+  function scrollBottom(smooth){
+    const go = () => scroller.scrollTo({top: scroller.scrollHeight, behavior: smooth ? 'smooth' : 'auto'});
+    go(); if (!smooth) requestAnimationFrame(go);
+  }
+  function ui(){
+    titleCard.classList.toggle('show', pos === 0);
+    endCard.classList.toggle('show', pos === N+1);
+    bar.style.width = (pos / (N+1) * 100) + '%';
+    const shown = Math.min(pos, N);
+    counter.textContent = pos > 0 && pos <= N ? shown + ' / ' + N : '';
+    document.documentElement.dataset.pos = pos;
+  }
+  function cancelTyping(){
+    if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+    if (typingRow) { typingRow.remove(); typingRow = null; }
+  }
+  function renderInstant(){
+    cancelTyping();
+    list.innerHTML = '';
+    for (let i = 0; i < Math.min(pos, N); i++){ const r = makeRow(i); fillText(r,i); list.appendChild(r); }
+    ui(); scrollBottom(false);
+  }
+
+  function finishTyping(){
+    if (!typingRow) return;
+    const row = typingRow, i = +row.dataset.i;
+    clearTimeout(typingTimer); typingTimer = null; typingRow = null;
+    const b = fillText(row, i); void b.offsetWidth; b.classList.add('pop');
+    pos = i + 1; ui(); scrollBottom(true);
+  }
+  function forward(){
+    if (typingRow) { finishTyping(); return; }        // click while typing -> reveal now
+    if (pos >= N+1) return;
+    if (pos === N) { pos = N+1; ui(); return; }        // -> end card
+    const i = pos;                                      // next message index
+    titleCard.classList.remove('show');                 // leaving the title card
+    const row = makeRow(i); row.classList.add('enter'); fillTyping(row);
+    list.appendChild(row); typingRow = row;
+    scrollBottom(true); setTimeout(()=>scrollBottom(true), 60);
+    typingTimer = setTimeout(finishTyping, TYPING_MS);
+  }
+  function back(){
+    if (typingRow) { cancelTyping(); renderInstant(); return; }  // undo pending message
+    if (pos <= 0) return;
+    pos--; renderInstant();
+  }
+
+  function toggleFS(){
+    const d = document, el = d.documentElement;
+    const inFS = d.fullscreenElement || d.webkitFullscreenElement;
+    try {
+      if (inFS) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+      else (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+    } catch(e){}
+  }
+
+  document.addEventListener('click', e => { forward(); });
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key){
+      case ' ': case 'Enter': case 'ArrowRight': case 'ArrowDown': case 'PageDown':
+        e.preventDefault(); forward(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'Backspace': case 'PageUp':
+        e.preventDefault(); back(); break;
+      case 'f': case 'F': e.preventDefault(); toggleFS(); break;
+      case 'Home': pos = 0; renderInstant(); break;
+      case 'End': pos = N+1; renderInstant(); break;
+    }
+  });
+  window.addEventListener('resize', () => scrollBottom(false));
+  // swipe support (iPad): swipe right = back
+  let tx = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; tx = null;
+    if (dx > 80) back();
+  }, {passive:true});
+
+  ui();
+})();
+</script>
+</body>
+</html>
