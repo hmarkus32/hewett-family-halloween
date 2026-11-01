@@ -86,7 +86,7 @@
   #clue-text.long{font-size:clamp(24px,4.2vw,80px)}
   #answer{font-family:var(--serif);font-weight:700;color:var(--gold);text-shadow:.04em .04em 0 #000;font-size:clamp(26px,4.4vw,84px);
     min-height:1.3em;visibility:hidden;text-transform:uppercase;overflow-wrap:anywhere}
-  #answer.shown{visibility:visible}
+  #answer.shown{visibility:visible;white-space:pre-line}
   #answer.empty{color:rgba(255,255,255,.65);font-style:italic}
   .clue-actions{display:flex;gap:2vw;justify-content:center;flex:0 0 auto}
   .clue-actions .btn-big{font-size:clamp(18px,2.4vw,40px)}
@@ -126,12 +126,12 @@ const GAME = {
       { value: 800,  clue: "ON AVERAGE, THIS PLANET IS CLOSEST TO EARTH", answer: "Mercury" },
       { value: 1000, clue: "A TEASPOON OF THIS STELLAR REMNANT WOULD WEIGH OVER 1 BILLION TONS ON EARTH", answer: "Neutron star" }
     ]},
-    { name: "Hunterisms", clues: [
-      { value: 200,  clue: "THIS IS ONE OF YETI’S MANY NICKNAMES", answer: "Yetilda, Yediot, Yetitty, Yesticle" },
-      { value: 400,  clue: "HUNTER’S PRONUNCIATION FOR KENNA", answer: "Kenná" },
-      { value: 600,  clue: "HUNTER IS FLUENT IN QUOTING THIS SHOW", answer: "The Office" },
-      { value: 800,  clue: "HUNTER’S WAY OF SAYING “DESSERT”", answer: "Sweet Treat" },
-      { value: 1000, clue: "HUNTER SLAPS THIS ENDING ONTO ANY NOUN TO MAKE IT A VERB", answer: "-ulate" }
+    { name: "Monster Mash", clues: [
+      { value: 200,  clue: "THIS BIG GREEN OGRE LIVES IN A SWAMP WITH DONKEY.", answer: "Shrek" },
+      { value: 400,  clue: "SULLEY AND MIKE WORK HERE.", answer: "Monsters, Inc." },
+      { value: 600,  clue: "HE’S THE PUMPKIN KING.", answer: "Jack Skellington" },
+      { value: 800,  clue: "DRACULA RUNS THIS HOTEL FOR MONSTERS IN A MOVIE SERIES.", answer: "Hotel Transylvania" },
+      { value: 1000, clue: "FINISH THE CHORUS! “THE MONSTER MASH ____ / THEY DID THE MASH ____ / THEY DID THE MASH ____”", answer: "It was a graveyard smash\nit caught on in a flash\nhe did the monster mash" }
     ]},
     { name: "Technically Edible", clues: [
       { value: 200,  clue: "CURDLED SOY MILK, THIS IS A SAD, VEGAN EXCUSE FOR A PROTEIN", answer: "Tofu" },
@@ -204,7 +204,7 @@ const GAME = {
 <script>
 (function(){
   "use strict";
-  var KEY = "jeopardy-hewett-v2";
+  var KEY = "jeopardy-hewett-v3";
   var DEFAULT_NAMES = ["Team 1","Team 2","Team 3","Team 4","Team 5","Team 6"];
   var MAXT = GAME.maxTeams || 6;
 
