@@ -8,16 +8,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Jeopardy">
 <meta name="robots" content="noindex">
-<title>Jeopardy — Cabin edition</title>
+<title>Jeopardy — Hewett Edition</title>
 <style>
   :root{
-    --blue:#060CE9; --navy:#0a1060; --bg:#020a3a; --gold:#FFC319; --white:#fff;
+    --blue:#5b2a86; --navy:#2a1240; --bg:#1a0b2e; --gold:#FF9F1C; --white:#fff;
     --serif: "Korinna","ITC Korinna","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;
-    --display: "Swiss 911","Impact","Haettenschweiler","Arial Narrow Bold","Arial Black",sans-serif;
+    --display: "Luckiest Guy","Chalkboard SE","Comic Sans MS","Marker Felt","Impact","Haettenschweiler","Arial Narrow Bold","Arial Black",sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--white);font-family:var(--serif);overflow:hidden}
-  body{background:radial-gradient(ellipse at 50% 30%, #0b1a8f 0%, #040f5e 45%, #01072b 100%)}
+  body{background:radial-gradient(ellipse at 50% 30%, #4a1f73 0%, #2a1240 50%, #120720 100%)}
   button{font-family:inherit;cursor:pointer}
   .screen{position:fixed;inset:0;display:none;flex-direction:column}
   .screen.active{display:flex}
@@ -45,19 +45,19 @@
   .btn-small.danger:hover{border-color:#ff6b6b;color:#ff6b6b}
   #board{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:minmax(0,1.1fr) repeat(5,minmax(0,1fr));gap:.7vmin;
     background:#000;padding:.7vmin;border-radius:.6vmin}
-  .cat{background:var(--blue);display:flex;align-items:center;justify-content:center;text-align:center;padding:.5em;
+  .cat{background:linear-gradient(180deg,#ff9f1c,#e8650c);display:flex;align-items:center;justify-content:center;text-align:center;padding:.5em;
     font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:clamp(12px,1.75vw,34px);line-height:1.05;
-    color:#fff;text-shadow:.06em .06em 0 #000;border:.25vmin solid #0b14ff;overflow:hidden;word-break:normal;overflow-wrap:normal}
-  .tile{background:linear-gradient(180deg,#0b17ff 0%,#0710b8 100%);border:.25vmin solid #2a35ff;color:var(--gold);
+    color:#fff;text-shadow:.06em .06em 0 #000;border:.25vmin solid #ff8c1a;overflow:hidden;word-break:normal;overflow-wrap:normal}
+  .tile{background:linear-gradient(180deg,#7b3fb0 0%,#4b1f75 100%);border:.25vmin solid #a35ee0;color:var(--gold);
     font-family:var(--display);font-size:clamp(24px,4.6vw,86px);text-shadow:.05em .05em 0 #000;display:flex;align-items:center;justify-content:center;
     transition:transform .08s, filter .15s;padding:0}
   .tile:hover,.tile:focus-visible{filter:brightness(1.35);transform:scale(1.03);outline:none;position:relative;z-index:1}
-  .tile.played{background:#050a40;border-color:#0a1060;color:transparent;text-shadow:none;cursor:default;filter:none;transform:none;opacity:.55}
+  .tile.played{background:#1f0e33;border-color:#2a1240;color:transparent;text-shadow:none;cursor:default;filter:none;transform:none;opacity:.55}
   .tile.played:hover{filter:none;transform:none}
 
   /* ---------- Scoreboard ---------- */
   .scoreboard{flex:0 0 auto;display:flex;gap:.8vw;align-items:stretch;justify-content:center}
-  .team{flex:1 1 0;min-width:0;max-width:20vw;background:rgba(0,0,0,.45);border:2px solid #2a35ff;border-radius:.6vmin;padding:.5vh .6vw;
+  .team{flex:1 1 0;min-width:0;max-width:20vw;background:rgba(0,0,0,.45);border:2px solid #ff8c1a;border-radius:.6vmin;padding:.5vh .6vw;
     display:flex;flex-direction:column;align-items:stretch;gap:.3vh}
   .team input{width:100%;background:transparent;border:0;border-bottom:1px dashed rgba(255,255,255,.3);color:#fff;
     font-family:var(--serif);font-weight:700;text-align:center;font-size:clamp(14px,1.7vw,30px);padding:.1em;text-transform:uppercase;letter-spacing:.04em}
@@ -76,7 +76,7 @@
   .team-ctl{display:flex;flex-direction:column;gap:.4vh;justify-content:center}
 
   /* ---------- Clue ---------- */
-  #clue-screen{padding:2vh 3vw 1.5vh;gap:2vh;background:radial-gradient(ellipse at 50% 40%, #0a18d0 0%, #060CE9 60%, #040a9e 100%)}
+  #clue-screen{padding:2vh 3vw 1.5vh;gap:2vh;background:radial-gradient(ellipse at 50% 40%, #6a2fa0 0%, #4b1f75 60%, #2a1240 100%)}
   #clue-screen .meta{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;flex:0 0 auto}
   #clue-cat{color:#fff;font-size:clamp(20px,3vw,52px)}
   #clue-val{color:var(--gold);font-size:clamp(28px,4.5vw,80px);text-shadow:.05em .05em 0 #000}
@@ -93,6 +93,11 @@
   .clue-actions .btn-big.secondary{border-color:#fff;color:#fff;background:rgba(0,0,0,.35)}
   #clue-screen .scoreboard{padding-top:.5vh}
   #clue-screen .team{background:rgba(0,0,10,.55)}
+  .deco{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .deco span{position:absolute;font-size:clamp(22px,3.5vw,56px);opacity:.35;animation:floaty 6s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-14px) rotate(6deg)}}
+  .screen{z-index:1}
+  #title .pumpkins{font-size:clamp(36px,6vw,96px);letter-spacing:.2em}
   .kbd{text-align:center;font-size:clamp(11px,1.1vw,18px);opacity:.65}
 </style>
 </head>
@@ -104,7 +109,7 @@
      Clue text is shown in UPPERCASE automatically. -->
 <script>
 const GAME = {
-  title: "Jeopardy — Cabin edition",
+  title: "Jeopardy — Hewett Edition 🎃",
   maxTeams: 6,
   categories: [
     { name: "80s Lyrics", clues: [
@@ -153,18 +158,25 @@ const GAME = {
 };
 </script>
 
+<div class="deco" aria-hidden="true">
+  <span style="left:4%;top:8%">🎃</span><span style="left:88%;top:12%;animation-delay:1s">👻</span>
+  <span style="left:12%;top:78%;animation-delay:2s">🍬</span><span style="left:80%;top:72%;animation-delay:.5s">🦇</span>
+  <span style="left:48%;top:4%;animation-delay:1.5s">🌙</span><span style="left:30%;top:88%;animation-delay:3s">🍭</span>
+  <span style="left:65%;top:90%;animation-delay:2.5s">🎃</span><span style="left:94%;top:45%;animation-delay:.8s">🍫</span>
+</div>
 <!-- Title -->
 <div id="title" class="screen active">
+  <div class="pumpkins" aria-hidden="true">🎃👻🍬🦇</div>
   <h1>Jeopardy</h1>
-  <h2>— Cabin edition —</h2>
-  <button class="btn-big" id="start-btn">Start game</button>
+  <h2>🎃 Hewett Edition 👻</h2>
+  <button class="btn-big" id="start-btn">Start game 🍬</button>
   <div class="hint">Click a tile to open a clue &nbsp;•&nbsp; Esc = back</div>
 </div>
 
 <!-- Board -->
 <div id="board-screen" class="screen">
   <div class="topbar">
-    <div class="logo">Jeopardy — Cabin edition</div>
+    <div class="logo">Jeopardy — Hewett Edition 🎃</div>
     <div class="actions">
       <button class="btn-small" id="title-btn">Title screen</button>
       <button class="btn-small danger" id="reset-btn">Reset game</button>
