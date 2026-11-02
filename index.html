@@ -80,9 +80,13 @@
   #clue-screen .meta{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;flex:0 0 auto}
   #clue-cat{color:#fff;font-size:clamp(20px,3vw,52px)}
   #clue-val{color:var(--gold);font-size:clamp(28px,4.5vw,80px);text-shadow:.05em .05em 0 #000}
-  .clue-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4vh;padding:0 2vw}
-  #clue-text{text-transform:uppercase;font-weight:700;line-height:1.25;text-shadow:.04em .04em 0 #000;max-width:90vw;
+  .clue-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2.5vh;padding:0 2vw}
+  #clue-text{white-space:pre-line;text-transform:uppercase;font-weight:700;line-height:1.25;text-shadow:.04em .04em 0 #000;max-width:90vw;
     font-size:clamp(28px,5.2vw,100px);margin:0;overflow-wrap:anywhere}
+  #clue-img{display:none;max-height:30vh;max-width:70vw;border:4px solid var(--gold);border-radius:8px;background:#fff;margin:0 auto}
+  #clue-img.on{display:block}
+  #clue-text.lines{font-size:clamp(20px,3.2vw,58px);line-height:1.15}
+  #answer.multi{font-size:clamp(20px,3vw,54px);line-height:1.15}
   #clue-text.long{font-size:clamp(24px,4.2vw,80px)}
   #answer{font-family:var(--serif);font-weight:700;color:var(--gold);text-shadow:.04em .04em 0 #000;font-size:clamp(26px,4.4vw,84px);
     min-height:1.3em;visibility:hidden;text-transform:uppercase;overflow-wrap:anywhere}
@@ -131,14 +135,14 @@ const GAME = {
       { value: 400,  clue: "SULLEY AND MIKE WORK HERE.", answer: "Monsters, Inc." },
       { value: 600,  clue: "HE’S THE PUMPKIN KING.", answer: "Jack Skellington" },
       { value: 800,  clue: "DRACULA RUNS THIS HOTEL FOR MONSTERS IN A MOVIE SERIES.", answer: "Hotel Transylvania" },
-      { value: 1000, clue: "FINISH THE CHORUS! “THE MONSTER MASH ____ / THEY DID THE MASH ____ / THEY DID THE MASH ____”", answer: "It was a graveyard smash\nit caught on in a flash\nhe did the monster mash" }
+      { value: 1000, clue: "FINISH THE CHORUS!\nTHE MONSTER MASH ____\nTHEY DID THE MASH ____\nTHEY DID THE MASH ____", answer: "It was a graveyard smash\nit caught on in a flash\nhe did the monster mash" }
     ]},
-    { name: "Technically Edible", clues: [
-      { value: 200,  clue: "CURDLED SOY MILK, THIS IS A SAD, VEGAN EXCUSE FOR A PROTEIN", answer: "Tofu" },
-      { value: 400,  clue: "THIS GETS ITS BOUNCE FROM COLLAGEN BOILED OUT OF ANIMAL BONES AND SKIN", answer: "Gelatin / Jell-O" },
-      { value: 600,  clue: "THIS MUSCULAR COW ORGAN IS BOILED, PEELED AND SLICED FOR TACOS AND OTHER DISHES IN CENTRAL AMERICA", answer: "Tongue / lengua" },
-      { value: 800,  clue: "THIS SCHOOL SUPPLY IS ALSO AN EDIBLE ANTACID", answer: "Chalk" },
-      { value: 1000, clue: "YOUNG SHOOTS OF THIS GRASS ARE EDIBLE ONLY AFTER BOILING OF THE NATURAL CYANIDE COMPOUNDS", answer: "Bamboo" }
+    { name: "Costume Zoom", clues: [
+      { value: 200, clue: "WHO IS THIS?", img: "img/costume/spiderman-zoom.jpg", full: "img/costume/spiderman.png", answer: "Spider-Man" },
+      { value: 400, clue: "WHO IS THIS?", img: "img/costume/lorax-zoom.jpg", full: "img/costume/lorax.png", answer: "The Lorax" },
+      { value: 600, clue: "WHO IS THIS?", img: "img/costume/batman-zoom.jpg", full: "img/costume/batman.jpg", answer: "Batman" },
+      { value: 800, clue: "COMING SOON", answer: "Woody" },
+      { value: 1000, clue: "COMING SOON", answer: "Oompa Loompa" }
     ]},
     { name: "The Villain Was Right", clues: [
       { value: 200,  clue: "THIS 8 LEGGED VILLAIN MADE A CONTRACT WITH THE PROTAGONIST WITHOUT FORCING HIS/HER SIGNATURE", answer: "Ursula" },
@@ -191,6 +195,7 @@ const GAME = {
   <div class="meta"><span id="clue-cat"></span><span id="clue-val"></span></div>
   <div class="clue-body">
     <p id="clue-text"></p>
+    <img id="clue-img" alt="">
     <div id="answer"></div>
   </div>
   <div class="clue-actions">
@@ -204,7 +209,7 @@ const GAME = {
 <script>
 (function(){
   "use strict";
-  var KEY = "jeopardy-hewett-v7";
+  var KEY = "jeopardy-hewett-v8";
   var DEFAULT_NAMES = ["Team 1","Team 2","Team 3","Team 4","Team 5","Team 6"];
   var MAXT = GAME.maxTeams || 6;
 
@@ -327,7 +332,8 @@ const GAME = {
     var cat = GAME.categories[c], clue = cat.clues[r];
     $("clue-cat").textContent = cat.name;
     $("clue-val").textContent = "$"+clue.value;
-    var ct = $("clue-text"); ct.textContent = clue.clue; ct.classList.toggle("long", clue.clue.length > 90);
+    var ct = $("clue-text"); ct.textContent = clue.clue; ct.classList.toggle("long", clue.clue.length > 90); ct.classList.toggle("lines", clue.clue.indexOf("\n") >= 0);
+    var im = $("clue-img"); if(clue.img){ im.src = clue.img; im.className = "on"; } else { im.className = ""; im.removeAttribute("src"); }
     var a = $("answer"); a.className = ""; a.textContent = "\u00a0";
     $("reveal-btn").disabled = false;
     renderClueScores();
@@ -340,7 +346,8 @@ const GAME = {
     var clue = GAME.categories[current.c].clues[current.r];
     var a = $("answer"), has = clue.answer && String(clue.answer).trim() !== "";
     a.textContent = has ? clue.answer : "No answer added";
-    a.className = "shown" + (has ? "" : " empty");
+    a.className = "shown" + (has ? "" : " empty") + (has && String(clue.answer).indexOf("\n") >= 0 ? " multi" : "");
+    if(clue.full){ $("clue-img").src = clue.full; }
     $("reveal-btn").disabled = true;
   }
   function backToBoard(){
